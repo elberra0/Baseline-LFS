@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce17a55e3e62e4f0e98573688b454881, type: 3}
+  m_Name: UnitStats
+  m_EditorClassIdentifier: 
+  InfantryHP: 2
+  InfantryDamage: 1
+  InfantryVelocity: 10
+  ArcherHP: 2
+  ArcherDamage: 1
+  ArcherVelocity: 10
+  CavalryHealth: 4
+  CavalryDamage: 2
+  CavalryVelocity: 20
+  heroHP: 6
+  heroDamage: 4
+  heroVelocity: 5
