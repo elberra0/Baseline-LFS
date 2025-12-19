@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -10,13 +11,22 @@ public enum UnitType
     Hero
 }
 
+public enum SimulationTurnPhase
+{
+    None,
+    Team1Move, Team1Attack,
+    Team2Move, Team2Attack,
+    Ended,
+}
+
 public class Unit : MonoBehaviour
 {
     #region Unit Data 
     public UnitType UnitType;
     public float UnitHP = 0.0f;
     public float UnitDamage = 0.0f;
-    public float UnitVelocity = 0.0f;
+    public int UnitVelocity = 0;
+    public int disttanceToAtackTarget = 0;
     #endregion
 
     private UnitStats unitStats = LowFidelitySimulation.Instance.unitStats;
@@ -42,7 +52,7 @@ public class Unit : MonoBehaviour
             case UnitType.Cavalry:
                 UnitHP = unitStats.CavalryHP;
                 UnitDamage = unitStats.CavalryDamage;
-                UnitVelocity = unitStats.ArcherVelocity;
+                UnitVelocity = unitStats.CavalryVelocity;
                 UnitType = UnitType.Cavalry;
                 break;
 
@@ -63,11 +73,15 @@ public class LowFidelitySimulation : MonoBehaviour
     #region Simulation 
     [Header("Simulation Data")]
     public UnitStats unitStats;
+    public SimulationTurnPhase turnPhase = SimulationTurnPhase.None;
+    public int currentTurn = 0;
     public string battleConfiguration = String.Empty;
-
+    public int distanceBetweenTeams = 10;
     public List<List<Unit>> Team1 = new List<List<Unit>>();
     public List<List<Unit>> Team2 = new List<List<Unit>>();
     #endregion
+
+    private Coroutine turnCoroutine;
 
     void Awake()
     {
@@ -84,31 +98,42 @@ public class LowFidelitySimulation : MonoBehaviour
         InitializeTeamsLists(Team1);
         InitializeTeamsLists(Team2);
 
-        CreateTeamUnits("1234", Team1);
-        CreateTeamUnits("4321", Team2);
+        CreateTeamUnits("1000", Team1);
+        CreateTeamUnits("0100", Team2);
 
-        for (int i = 0; i < Team1.Count; i++)
+       //for (int i = 0; i < Team1.Count; i++)
+       //{
+       //    Debug.Log($"Sublista {i}, unidades: {Team1[i].Count}");
+       //
+       //    for (int j = 0; j < Team1[i].Count; j++)
+       //    {
+       //        Unit u = Team1[i][j];
+       //        Debug.Log($"[{i},{j}] Type={u.UnitType}, HP={u.UnitHP}, DMG={u.UnitDamage}, VEL={u.UnitVelocity}");
+       //    }
+       //}
+       //
+       //for (int i = 0; i < Team2.Count; i++)
+       //{
+       //    Debug.Log($"Sublista {i}, unidades: {Team2[i].Count}");
+       //
+       //    for (int j = 0; j < Team2[i].Count; j++)
+       //    {
+       //        Unit u = Team2[i][j];
+       //        Debug.Log($"[{i},{j}] Type={u.UnitType}, HP={u.UnitHP}, DMG={u.UnitDamage}, VEL={u.UnitVelocity}");
+       //    }
+       //}
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.T))
         {
-            Debug.Log($"Sublista {i}, unidades: {Team1[i].Count}");
-
-            for (int j = 0; j < Team1[i].Count; j++)
-            {
-                Unit u = Team1[i][j];
-                Debug.Log($"[{i},{j}] Type={u.UnitType}, HP={u.UnitHP}, DMG={u.UnitDamage}, VEL={u.UnitVelocity}");
-            }
-        }
-
-        for (int i = 0; i < Team2.Count; i++)
-        {
-            Debug.Log($"Sublista {i}, unidades: {Team2[i].Count}");
-
-            for (int j = 0; j < Team2[i].Count; j++)
-            {
-                Unit u = Team2[i][j];
-                Debug.Log($"[{i},{j}] Type={u.UnitType}, HP={u.UnitHP}, DMG={u.UnitDamage}, VEL={u.UnitVelocity}");
-            }
+            if (turnCoroutine != null)
+                StopCoroutine(turnCoroutine);
+            turnCoroutine = StartCoroutine(TurnSystemCoroutine());
         }
     }
+
 
     private void InitializeTeamsLists(List<List<Unit>> Team)
     {
@@ -146,6 +171,87 @@ public class LowFidelitySimulation : MonoBehaviour
         {
             Unit hero = new Unit(UnitType.Hero);
             Team[3].Add(hero);
+        }
+    }
+
+    private void ChangeSimulationState()
+    {
+        if (Team1.Count == 0 || Team2.Count == 0 || distanceBetweenTeams <= 0)
+        {
+            turnPhase = SimulationTurnPhase.Ended;
+            Debug.Log("Simulation Ended");
+        }
+    }
+
+    private int GetSlowestUnitGroupVelocity(List<List<Unit>> Team)
+    {
+        int slowestVelocity = int.MaxValue;
+        foreach (var unitGroup in Team)
+        {
+            if (unitGroup.Count > 0)
+            {
+                int groupVelocity = unitGroup[0].UnitVelocity;
+                if (groupVelocity < slowestVelocity)
+                {
+                    slowestVelocity = groupVelocity;
+                }
+            }
+        }
+        return slowestVelocity;
+    }
+
+    private IEnumerator MoveTeamPhase(List<List<Unit>> team, List<List<Unit>> enemy)
+    {
+        turnPhase = (currentTurn % 2 == 0) ? SimulationTurnPhase.Team1Move : SimulationTurnPhase.Team2Move;
+        Debug.Log("MOVEMENT PHASE");
+
+        int slowestGroupSpeed = GetSlowestUnitGroupVelocity(team);
+        Debug.Log($"Slowestt group velocity: {slowestGroupSpeed}");
+
+        // 2. TODO el equipo avanza esa distancia
+        if (distanceBetweenTeams > slowestGroupSpeed)
+            distanceBetweenTeams -= slowestGroupSpeed;
+        else
+            distanceBetweenTeams = 0;
+
+        Debug.Log($"Distance Between Teams: {distanceBetweenTeams}");
+
+        // 3. Pausa visual
+        yield return new WaitForSeconds(1.2f);
+    }
+    private IEnumerator AttackTeamPhase(List<List<Unit>> team, List<List<Unit>> enemy)
+    {
+        turnPhase = SimulationTurnPhase.Team1Attack;
+        Debug.Log("FASE ATAQUE");
+
+
+        yield return new WaitForSeconds(1.5f);
+    }
+
+    private IEnumerator TurnSystemCoroutine()
+    {
+        while (turnPhase != SimulationTurnPhase.Ended)
+        {
+            List<List<Unit>> currentTeam = (currentTurn % 2 == 0) ? Team1 : Team2;
+            List<List<Unit>> enemyTeam = (currentTurn % 2 == 0) ? Team2 : Team1;
+
+            Debug.Log($"Turno {currentTurn}: {((currentTurn % 2 == 0) ? "Team1" : "Team2")}");
+
+            //Move teams
+            if (distanceBetweenTeams > 0)
+            {
+                yield return StartCoroutine(MoveTeamPhase(currentTeam, enemyTeam));
+            }
+
+
+            //Attack
+            //yield return StartCoroutine(AttackTeamPhase(currentTeam, enemyTeam));
+
+            currentTurn++;
+
+            ChangeSimulationState();
+
+            yield return new WaitForSeconds(0.5f);
         }
     }
 

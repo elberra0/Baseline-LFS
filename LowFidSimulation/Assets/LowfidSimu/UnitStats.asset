@@ -14,13 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   InfantryHP: 2
   InfantryDamage: 1
-  InfantryVelocity: 10
+  InfantryVelocity: 2
+  InfantryDistanceToAttackTarget: 1
   ArcherHP: 2
   ArcherDamage: 1
-  ArcherVelocity: 10
-  CavalryHealth: 4
+  ArcherVelocity: 2
+  ArcherDistanceToAttackTarget: 5
+  CavalryHP: 4
   CavalryDamage: 2
-  CavalryVelocity: 20
+  CavalryVelocity: 4
+  CavalryDistanceToAttackTarget: 1
   heroHP: 6
   heroDamage: 4
-  heroVelocity: 5
+  heroVelocity: 1
+  HeroDistanceToAttackTarget: 1
