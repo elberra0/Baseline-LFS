@@ -82,6 +82,8 @@ public class LowFidelitySimulation : MonoBehaviour
     #endregion
 
     private Coroutine turnCoroutine;
+    private int Team1TotalHP = 0;
+    private int Team2TotalHP = 0;
 
     void Awake()
     {
@@ -101,27 +103,30 @@ public class LowFidelitySimulation : MonoBehaviour
         CreateTeamUnits("1000", Team1);
         CreateTeamUnits("0100", Team2);
 
-       //for (int i = 0; i < Team1.Count; i++)
-       //{
-       //    Debug.Log($"Sublista {i}, unidades: {Team1[i].Count}");
-       //
-       //    for (int j = 0; j < Team1[i].Count; j++)
-       //    {
-       //        Unit u = Team1[i][j];
-       //        Debug.Log($"[{i},{j}] Type={u.UnitType}, HP={u.UnitHP}, DMG={u.UnitDamage}, VEL={u.UnitVelocity}");
-       //    }
-       //}
-       //
-       //for (int i = 0; i < Team2.Count; i++)
-       //{
-       //    Debug.Log($"Sublista {i}, unidades: {Team2[i].Count}");
-       //
-       //    for (int j = 0; j < Team2[i].Count; j++)
-       //    {
-       //        Unit u = Team2[i][j];
-       //        Debug.Log($"[{i},{j}] Type={u.UnitType}, HP={u.UnitHP}, DMG={u.UnitDamage}, VEL={u.UnitVelocity}");
-       //    }
-       //}
+        Team1TotalHP =  GetTeamTotalHP(Team1);
+        Team2TotalHP =  GetTeamTotalHP(Team2);
+
+        //for (int i = 0; i < Team1.Count; i++)
+        //{
+        //    Debug.Log($"Sublista {i}, unidades: {Team1[i].Count}");
+        //
+        //    for (int j = 0; j < Team1[i].Count; j++)
+        //    {
+        //        Unit u = Team1[i][j];
+        //        Debug.Log($"[{i},{j}] Type={u.UnitType}, HP={u.UnitHP}, DMG={u.UnitDamage}, VEL={u.UnitVelocity}");
+        //    }
+        //}
+        //
+        //for (int i = 0; i < Team2.Count; i++)
+        //{
+        //    Debug.Log($"Sublista {i}, unidades: {Team2[i].Count}");
+        //
+        //    for (int j = 0; j < Team2[i].Count; j++)
+        //    {
+        //        Unit u = Team2[i][j];
+        //        Debug.Log($"[{i},{j}] Type={u.UnitType}, HP={u.UnitHP}, DMG={u.UnitDamage}, VEL={u.UnitVelocity}");
+        //    }
+        //}
     }
 
     private void Update()
@@ -176,11 +181,47 @@ public class LowFidelitySimulation : MonoBehaviour
 
     private void ChangeSimulationState()
     {
-        if (Team1.Count == 0 || Team2.Count == 0 || distanceBetweenTeams <= 0)
+        if (Team1.Count == 0 || Team2.Count == 0 || /*distanceBetweenTeams <= 0 || */ Team1TotalHP <= 0 || Team2TotalHP <= 0)
         {
             turnPhase = SimulationTurnPhase.Ended;
             Debug.Log("Simulation Ended");
         }
+    }
+
+    private int GetTeamTotalHP(List<List<Unit>> Team)
+    {
+        int totalHP = 0;
+        foreach (var unitGroup in Team)
+        {
+            foreach (var unit in unitGroup)
+            {
+                totalHP += (int)unit.UnitHP;
+            }
+        }
+        return totalHP;
+    }
+
+    private int GetTeamTotalDamage(List<List<Unit>> Team,float distanceBetweenTeams)
+    {
+        int totalDamage = 0;
+        int slowestVelocity = int.MaxValue;
+        foreach (var unitGroup in Team)
+        {
+            if (unitGroup.Count > 0)
+            {
+                if(unitGroup[0].disttanceToAtackTarget >= distanceBetweenTeams || distanceBetweenTeams <= 0)
+                {
+                    totalDamage += (int)(unitGroup[0].UnitDamage); //We only take one unit damage as a representation
+                }
+            }
+        }
+
+        if(totalDamage == 0)
+        {
+            Debug.Log("No units in range to attack");
+        }
+
+        return totalDamage;
     }
 
     private int GetSlowestUnitGroupVelocity(List<List<Unit>> Team)
@@ -206,9 +247,8 @@ public class LowFidelitySimulation : MonoBehaviour
         Debug.Log("MOVEMENT PHASE");
 
         int slowestGroupSpeed = GetSlowestUnitGroupVelocity(team);
-        Debug.Log($"Slowestt group velocity: {slowestGroupSpeed}");
+        //Debug.Log($"Slowestt group velocity: {slowestGroupSpeed}");
 
-        // 2. TODO el equipo avanza esa distancia
         if (distanceBetweenTeams > slowestGroupSpeed)
             distanceBetweenTeams -= slowestGroupSpeed;
         else
@@ -216,18 +256,31 @@ public class LowFidelitySimulation : MonoBehaviour
 
         Debug.Log($"Distance Between Teams: {distanceBetweenTeams}");
 
-        // 3. Pausa visual
         yield return new WaitForSeconds(1.2f);
     }
     private IEnumerator AttackTeamPhase(List<List<Unit>> team, List<List<Unit>> enemy)
     {
         turnPhase = SimulationTurnPhase.Team1Attack;
-        Debug.Log("FASE ATAQUE");
+        Debug.Log("ATTACK PHASE");
 
+        if (currentTurn % 2 != 0)
+        {
+            Debug.Log("Team2 attacks Team1");
+            Debug.Log($"Team1 Total HP before attack: {Team1TotalHP}");
+            Team1TotalHP -= GetTeamTotalDamage(enemy,distanceBetweenTeams);
+            Debug.Log($"Team1 Total HP after attack: {Team1TotalHP}");
+        }
+        else
+        {
+            Debug.Log("Team1 attacks Team2");
+            Debug.Log($"Team2 Total HP before attack: {Team2TotalHP}");
+            Team2TotalHP -= GetTeamTotalDamage(enemy, distanceBetweenTeams);
+            Debug.Log($"Team2 Total HP after attack: {Team2TotalHP}");
+        }
 
         yield return new WaitForSeconds(1.5f);
     }
-
+    
     private IEnumerator TurnSystemCoroutine()
     {
         while (turnPhase != SimulationTurnPhase.Ended)
@@ -245,7 +298,7 @@ public class LowFidelitySimulation : MonoBehaviour
 
 
             //Attack
-            //yield return StartCoroutine(AttackTeamPhase(currentTeam, enemyTeam));
+            yield return StartCoroutine(AttackTeamPhase(currentTeam, enemyTeam));
 
             currentTurn++;
 
