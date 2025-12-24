@@ -84,7 +84,7 @@ public class LowFidelitySimulation : MonoBehaviour
     private Coroutine turnCoroutine;
     private int Team1TotalHP = 0;
     private int Team2TotalHP = 0;
-
+    private bool isSimulationRunning = false;
     void Awake()
     {
         if (Instance == null)
@@ -97,15 +97,6 @@ public class LowFidelitySimulation : MonoBehaviour
 
     void Start()
     {
-        InitializeTeamsLists(Team1);
-        InitializeTeamsLists(Team2);
-
-        CreateTeamUnits("1000", Team1);
-        CreateTeamUnits("0100", Team2);
-
-        Team1TotalHP =  GetTeamTotalHP(Team1);
-        Team2TotalHP =  GetTeamTotalHP(Team2);
-
         //for (int i = 0; i < Team1.Count; i++)
         //{
         //    Debug.Log($"Sublista {i}, unidades: {Team1[i].Count}");
@@ -134,7 +125,12 @@ public class LowFidelitySimulation : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.T))
         {
             if (turnCoroutine != null)
+            {
                 StopCoroutine(turnCoroutine);
+                turnCoroutine = null;
+            }
+
+            ResetSimulation();
             turnCoroutine = StartCoroutine(TurnSystemCoroutine());
         }
     }
@@ -185,6 +181,7 @@ public class LowFidelitySimulation : MonoBehaviour
         {
             turnPhase = SimulationTurnPhase.Ended;
             Debug.Log("Simulation Ended");
+
         }
     }
 
@@ -204,7 +201,7 @@ public class LowFidelitySimulation : MonoBehaviour
     private int GetTeamTotalDamage(List<List<Unit>> Team,float distanceBetweenTeams)
     {
         int totalDamage = 0;
-        int slowestVelocity = int.MaxValue;
+
         foreach (var unitGroup in Team)
         {
             if (unitGroup.Count > 0)
@@ -219,6 +216,9 @@ public class LowFidelitySimulation : MonoBehaviour
         if(totalDamage == 0)
         {
             Debug.Log("No units in range to attack");
+        }
+        else {
+            Debug.Log("Total Damage = " + totalDamage);
         }
 
         return totalDamage;
@@ -296,7 +296,6 @@ public class LowFidelitySimulation : MonoBehaviour
                 yield return StartCoroutine(MoveTeamPhase(currentTeam, enemyTeam));
             }
 
-
             //Attack
             yield return StartCoroutine(AttackTeamPhase(currentTeam, enemyTeam));
 
@@ -306,6 +305,28 @@ public class LowFidelitySimulation : MonoBehaviour
 
             yield return new WaitForSeconds(0.5f);
         }
+    }
+
+    private void ResetSimulation()
+    {
+        isSimulationRunning = true;
+        turnPhase = SimulationTurnPhase.None;
+        currentTurn = 0;
+        distanceBetweenTeams = 10;
+
+        Team1.Clear();
+        Team2.Clear();
+
+        InitializeTeamsLists(Team1);
+        InitializeTeamsLists(Team2);
+
+        CreateTeamUnits("1000", Team1);
+        CreateTeamUnits("0100", Team2);
+
+        Team1TotalHP = GetTeamTotalHP(Team1);
+        Team2TotalHP = GetTeamTotalHP(Team2);
+
+        Debug.Log("Simulation Reset - Ready to start!");
     }
 
 }
