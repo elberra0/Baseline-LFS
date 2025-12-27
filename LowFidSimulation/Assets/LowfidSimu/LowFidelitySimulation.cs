@@ -19,6 +19,7 @@ public enum SimulationTurnPhase
     Ended,
 }
 
+
 public class Unit : MonoBehaviour
 {
     #region Unit Data 
@@ -26,7 +27,7 @@ public class Unit : MonoBehaviour
     public float UnitHP = 0.0f;
     public float UnitDamage = 0.0f;
     public int UnitVelocity = 0;
-    public int disttanceToAtackTarget = 0;
+    public int UnitDisttanceToAtackTarget = 0;
     #endregion
 
     private UnitStats unitStats = LowFidelitySimulation.Instance.unitStats;
@@ -40,6 +41,7 @@ public class Unit : MonoBehaviour
                 UnitDamage = unitStats.InfantryDamage;
                 UnitVelocity = unitStats.InfantryVelocity;
                 UnitType = UnitType.Infantry;
+                UnitDisttanceToAtackTarget = unitStats.InfantryDistanceToAttackTarget;
                 break;
 
             case UnitType.Archer:
@@ -47,6 +49,7 @@ public class Unit : MonoBehaviour
                 UnitDamage = unitStats.ArcherDamage;
                 UnitVelocity = unitStats.ArcherVelocity;
                 UnitType = UnitType.Archer;
+                UnitDisttanceToAtackTarget = unitStats.ArcherDistanceToAttackTarget;
                 break;
 
             case UnitType.Cavalry:
@@ -54,6 +57,7 @@ public class Unit : MonoBehaviour
                 UnitDamage = unitStats.CavalryDamage;
                 UnitVelocity = unitStats.CavalryVelocity;
                 UnitType = UnitType.Cavalry;
+                UnitDisttanceToAtackTarget = unitStats.CavalryDistanceToAttackTarget;
                 break;
 
             case UnitType.Hero:
@@ -61,6 +65,7 @@ public class Unit : MonoBehaviour
                 UnitDamage = unitStats.heroDamage;
                 UnitVelocity = unitStats.heroVelocity;
                 UnitType = UnitType.Hero;
+                UnitDisttanceToAtackTarget = unitStats.HeroDistanceToAttackTarget;
                 break;
         }
     }
@@ -69,6 +74,7 @@ public class Unit : MonoBehaviour
 public class LowFidelitySimulation : MonoBehaviour
 {
     public static LowFidelitySimulation Instance;
+    private static System.Random random = new System.Random();
 
     #region Simulation 
     [Header("Simulation Data")]
@@ -198,7 +204,7 @@ public class LowFidelitySimulation : MonoBehaviour
         return totalHP;
     }
 
-    private int GetTeamTotalDamage(List<List<Unit>> Team,float distanceBetweenTeams)
+    private int GetTeamTotalDamage(List<List<Unit>> Team, float distanceBetweenTeams)
     {
         int totalDamage = 0;
 
@@ -206,18 +212,19 @@ public class LowFidelitySimulation : MonoBehaviour
         {
             if (unitGroup.Count > 0)
             {
-                if(unitGroup[0].disttanceToAtackTarget >= distanceBetweenTeams || distanceBetweenTeams <= 0)
+                if (unitGroup[0].UnitDisttanceToAtackTarget > distanceBetweenTeams || distanceBetweenTeams <= 0)
                 {
                     totalDamage += (int)(unitGroup[0].UnitDamage); //We only take one unit damage as a representation
                 }
             }
         }
 
-        if(totalDamage == 0)
+        if (totalDamage == 0)
         {
             Debug.Log("No units in range to attack");
         }
-        else {
+        else
+        {
             Debug.Log("Total Damage = " + totalDamage);
         }
 
@@ -267,20 +274,20 @@ public class LowFidelitySimulation : MonoBehaviour
         {
             Debug.Log("Team2 attacks Team1");
             Debug.Log($"Team1 Total HP before attack: {Team1TotalHP}");
-            Team1TotalHP -= GetTeamTotalDamage(enemy,distanceBetweenTeams);
+            Team1TotalHP -= GetTeamTotalDamage(team, distanceBetweenTeams);
             Debug.Log($"Team1 Total HP after attack: {Team1TotalHP}");
         }
         else
         {
             Debug.Log("Team1 attacks Team2");
             Debug.Log($"Team2 Total HP before attack: {Team2TotalHP}");
-            Team2TotalHP -= GetTeamTotalDamage(enemy, distanceBetweenTeams);
+            Team2TotalHP -= GetTeamTotalDamage(team, distanceBetweenTeams);
             Debug.Log($"Team2 Total HP after attack: {Team2TotalHP}");
         }
 
         yield return new WaitForSeconds(1.5f);
     }
-    
+
     private IEnumerator TurnSystemCoroutine()
     {
         while (turnPhase != SimulationTurnPhase.Ended)
@@ -320,13 +327,23 @@ public class LowFidelitySimulation : MonoBehaviour
         InitializeTeamsLists(Team1);
         InitializeTeamsLists(Team2);
 
-        CreateTeamUnits("1000", Team1);
-        CreateTeamUnits("0100", Team2);
+        string team1 = "";
+        string team2 = "";
+
+        for (int i = 0; i < 4; i++)
+        {
+            team1 += random.Next(4).ToString();
+            team2 += random.Next(4).ToString();
+        }
+
+        CreateTeamUnits(team1, Team1);
+        CreateTeamUnits(team2, Team2);
 
         Team1TotalHP = GetTeamTotalHP(Team1);
         Team2TotalHP = GetTeamTotalHP(Team2);
 
         Debug.Log("Simulation Reset - Ready to start!");
+        Debug.Log("Team config " + team1 + " " + team2);
     }
 
 }

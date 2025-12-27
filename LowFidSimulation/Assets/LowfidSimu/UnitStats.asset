@@ -19,7 +19,7 @@ MonoBehaviour:
   ArcherHP: 2
   ArcherDamage: 1
   ArcherVelocity: 2
-  ArcherDistanceToAttackTarget: 5
+  ArcherDistanceToAttackTarget: 10
   CavalryHP: 4
   CavalryDamage: 2
   CavalryVelocity: 4
