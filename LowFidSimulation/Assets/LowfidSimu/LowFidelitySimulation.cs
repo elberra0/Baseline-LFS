@@ -128,7 +128,7 @@ public class LowFidelitySimulation : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.T))
+        if (turnPhase == SimulationTurnPhase.None || turnPhase == SimulationTurnPhase.Ended)
         {
             if (turnCoroutine != null)
             {
@@ -186,7 +186,7 @@ public class LowFidelitySimulation : MonoBehaviour
         if (Team1.Count == 0 || Team2.Count == 0 || /*distanceBetweenTeams <= 0 || */ Team1TotalHP <= 0 || Team2TotalHP <= 0)
         {
             turnPhase = SimulationTurnPhase.Ended;
-            Debug.Log("Simulation Ended");
+            Debug.LogError("Simulation Ended");
 
         }
     }
